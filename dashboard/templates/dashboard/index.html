@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CL 2026 Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .top-8-bg { background-color: rgba(30, 58, 138, 0.3); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="p-6 font-sans">
+    <header class="mb-8 flex justify-between items-center border-b border-slate-800 pb-4">
+        <h1 class="text-2xl font-bold tracking-tight text-blue-500 uppercase">Champions League <span class="text-white">2026 Board</span></h1>
+        <div class="text-sm text-slate-400">Swiss Stage | Historical Data Mode</div>
+    </header>
+
+    <main class="grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div class="md:col-span-8 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
+            <div class="p-4 border-b border-slate-800 bg-slate-900/50">
+                <h2 class="font-semibold text-lg">Swiss Stage Standings</h2>
+            </div>
+            <div class="overflow-y-auto max-h-[750px] scrollbar-hide">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-800/50 text-slate-400 uppercase text-xs sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3">#</th>
+                            <th class="px-4 py-3">Team</th>
+                            <th class="px-4 py-3">P</th>
+                            <th class="px-4 py-3 text-center">W</th>
+                            <th class="px-4 py-3 text-center">D</th>
+                            <th class="px-4 py-3 text-center">L</th>
+                            <th class="px-4 py-3">GF</th>
+                            <th class="px-4 py-3">GA</th>
+                            <th class="px-4 py-3 font-bold text-blue-400">Pts</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% for team in teams %}
+                        <tr onclick="loadTeamData({{ team.id }}, this)" class="team-row cursor-pointer hover:bg-slate-800/30 transition-colors {% if forloop.counter <= 8 %}top-8-bg{% endif %}" data-team-id="{{ team.id }}">
+                            <td class="px-4 py-3 font-mono text-slate-500">{{ forloop.counter }}</td>
+                            <td class="px-4 py-3 font-semibold">{{ team.name }}</td>
+                            <td class="px-4 py-3 text-slate-400">{{ team.played }}</td>
+                            <td class="px-4 py-3 text-center">{{ team.wins }}</td>
+                            <td class="px-4 py-3 text-center">{{ team.draws }}</td>
+                            <td class="px-4 py-3 text-center">{{ team.losses }}</td>
+                            <td class="px-4 py-3 font-mono text-slate-400">{{ team.goals_for }}</td>
+                            <td class="px-4 py-3 font-mono text-slate-400">{{ team.goals_against }}</td>
+                            <td class="px-4 py-3 font-bold text-blue-400">{{ team.points }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-3 text-xs text-slate-500 italic border-t border-slate-800">
+                * Top 8 teams advance directly to the Round of 16.
+            </div>
+        </div>
+
+        <div class="md:col-span-4">
+            <div class="w-full bg-[#0d1b2e] text-[#e0e8f0] p-4 rounded-xl font-sans border border-[#1e3550]">
+                <div class="mb-5">
+                    <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Навигация по блокам</div>
+                    <div class="flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-hide" id="tab-nav">
+                        <button onclick="switchTab('tab-matches', this)" class="tab-btn text-[12px] px-3 py-1.5 rounded-full border border-[#1b6fc8] bg-[#1b6fc8] text-white whitespace-nowrap">Матчи</button>
+                        <button onclick="switchTab('tab-stats', this)" class="tab-btn text-[12px] px-3 py-1.5 rounded-full border border-[#1e3550] text-[#8ab0d0] hover:bg-[#1e3550] transition-colors whitespace-nowrap">Статистика</button>
+                        <button onclick="switchTab('tab-h2h', this)" class="tab-btn text-[12px] px-3 py-1.5 rounded-full border border-[#1e3550] text-[#8ab0d0] hover:bg-[#1e3550] transition-colors whitespace-nowrap">H2H</button>
+                        <button onclick="switchTab('tab-simulation', this)" class="tab-btn text-[12px] px-3 py-1.5 rounded-full border border-[#1e3550] text-[#8ab0d0] hover:bg-[#1e3550] transition-colors whitespace-nowrap">Симуляция</button>
+                    </div>
+                </div>
+
+                <div id="tab-matches" class="tab-content">
+                    <div class="mb-5">
+                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">История матчей команды</div>
+                        <div class="bg-[#142338] rounded-lg p-3 border border-[#1e3550]">
+                            <div id="selected-team-name-history" class="text-[12px] text-[#7a9ab8] mb-2 uppercase tracking-wider">Выберите команду</div>
+                            <div id="match-history-list" class="space-y-0">
+                                <div class="text-[11px] text-slate-500 italic py-4 text-center">Нажмите на команду в таблице для просмотра данных</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-stats" class="tab-content hidden">
+                    <div class="mb-5">
+                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Статистика команды</div>
+                        <div class="bg-[#142338] rounded-lg p-3 border border-[#1e3550]">
+                            <div id="stats-container">
+                                <div class="flex justify-between items-center text-[12px] py-1.5 border-b border-[#1a2f45]">
+                                    <div class="text-[#7a9ab8] w-24">Win Rate</div>
+                                    <div class="flex-1 mx-2.5 bg-[#1a2f45] rounded-full h-1">
+                                        <div id="stat-win-rate-bar" class="bg-[#1b6fc8] h-1 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                    <div id="stat-win-rate-val" class="text-[#4fc3f7] font-medium w-8 text-right">0%</div>
+                                </div>
+                                <div class="flex justify-between items-center text-[12px] py-1.5 border-b border-[#1a2f45]">
+                                    <div class="text-[#7a9ab8] w-24">Очки</div>
+                                    <div class="flex-1 mx-2.5 bg-[#1a2f45] rounded-full h-1">
+                                        <div id="stat-pts-bar" class="bg-[#4fc3f7] h-1 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                    <div id="stat-pts-val" class="text-[#4fc3f7] font-medium w-8 text-right">0</div>
+                                </div>
+                                <div class="flex justify-between items-center text-[12px] py-1.5 border-b border-[#1a2f45]">
+                                    <div class="text-[#7a9ab8] w-24">Забито голов</div>
+                                    <div id="stat-gf-val" class="text-[#4fc3f7] font-medium flex-1 text-right">0</div>
+                                </div>
+                                <div class="flex justify-between items-center text-[12px] py-1.5">
+                                    <div class="text-[#7a9ab8] w-24">Пропущено</div>
+                                    <div id="stat-ga-val" class="text-[#ef5350] font-medium flex-1 text-right">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-h2h" class="tab-content hidden">
+                    <div class="mb-5">
+                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Head-to-Head</div>
+                        <div class="bg-[#142338] rounded-lg p-3 border border-[#1e3550]">
+                            <div class="text-[11px] text-slate-500 italic py-4 text-center">Заглушка H2H</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-simulation" class="tab-content hidden">
+                    <div class="mb-5">
+                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Симуляция</div>
+                        <div class="bg-[#142338] rounded-lg p-3 border border-[#1e3550]">
+                            <div class="text-[11px] text-slate-500 italic py-4 text-center">Заглушка симуляции</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.classList.remove('bg-[#1b6fc8]', 'text-white', 'border-[#1b6fc8]');
+                b.classList.add('text-[#8ab0d0]', 'border-[#1e3550]');
+            });
+            btn.classList.add('bg-[#1b6fc8]', 'text-white', 'border-[#1b6fc8]');
+            btn.classList.remove('text-[#8ab0d0]', 'border-[#1e3550]');
+        }
+
+        async function loadTeamData(teamId, row) {
+            document.querySelectorAll('.team-row').forEach(r => r.classList.remove('bg-blue-900/40'));
+            row.classList.add('bg-blue-900/40');
+
+            try {
+                const response = await fetch("/api/team/" + teamId + "/");
+                const data = await response.json();
+
+                document.getElementById('selected-team-name-history').innerText = data.name + " — ПОСЛЕДНИЕ 5";
+                const historyList = document.getElementById('match-history-list');
+                historyList.innerHTML = '';
+
+                data.matches.forEach(function(m, index) {
+                    const borderClass = index === data.matches.length - 1 ? '' : 'border-b border-[#1e3550]';
+                    historyList.innerHTML += '<a href="/match/' + m.id + '/" target="_blank" class="block hover:bg-slate-800/50 transition-colors">' +
+                        '<div class="flex items-center justify-between py-2 ' + borderClass + ' text-[13px] px-2">' +
+                        '<div class="flex-1 text-[12px] truncate">' + data.name.split(" ")[0] + ' <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium ml-1.5 ' + m.res_color + '">' + m.result + '</span></div>' +
+                        '<div class="font-medium text-[#4fc3f7] px-2.5 text-[15px] min-w-[48px] text-center">' + m.score + '</div>' +
+                        '<div class="flex-1 text-[12px] text-right text-[#7a9ab8] truncate">' + m.opponent + '</div>' +
+                        '</div></a>';
+                });
+
+                document.getElementById('stat-win-rate-val').innerText = data.stats.win_rate + "%";
+                document.getElementById('stat-win-rate-bar').style.width = data.stats.win_rate + "%";
+                const ptsPerc = Math.min((data.stats.points / 24) * 100, 100);
+                document.getElementById('stat-pts-val').innerText = data.stats.points;
+                document.getElementById('stat-pts-bar').style.width = ptsPerc + "%";
+                document.getElementById('stat-gf-val').innerText = data.stats.gf;
+                document.getElementById('stat-ga-val').innerText = data.stats.ga;
+
+            } catch (error) {
+                console.error('Error fetching team data:', error);
+            }
+        }
+    </script>
+</body>
+</html>
