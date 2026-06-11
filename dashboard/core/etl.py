@@ -29,7 +29,10 @@ class KaggleETL:
             
             teams_dict = {}
             for name in team_names:
-                team = Team.objects.create(name=name)
+                # Генерируем путь к лого на основе названия команды
+                safe_name = name.lower().replace(" ", "_").replace(".", "")
+                logo_path = f"/static/dashboard/images/logos/{safe_name}.png"
+                team = Team.objects.create(name=name, logo_url=logo_path)
                 teams_dict[name] = team
 
             # 3. Создание матчей и обновление статистики

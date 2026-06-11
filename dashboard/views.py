@@ -2,12 +2,14 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.db.models import Q
 from .models import Team, Match
+from .news_data import NEWS_LIST
 import random
 
 def index(request):
     teams = Team.objects.all().order_by('-points', '-rank')
     context = {
         'teams': teams,
+        'news_items': NEWS_LIST[:4],  # Limit to 4 items initially
     }
     return render(request, 'dashboard/index.html', context)
 

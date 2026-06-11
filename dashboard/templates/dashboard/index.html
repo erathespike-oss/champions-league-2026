@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CL 2026 Analytics</title>
+    <title>CL 2024/25 Analytics</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; }
@@ -14,7 +14,7 @@
 </head>
 <body class="p-6 font-sans">
     <header class="mb-8 flex justify-between items-center border-b border-slate-800 pb-4">
-        <h1 class="text-2xl font-bold tracking-tight text-blue-500 uppercase">Champions League <span class="text-white">2026 Board</span></h1>
+        <h1 class="text-2xl font-bold tracking-tight text-blue-500 uppercase">Champions League <span class="text-white">2024/25 Board</span></h1>
         <div class="text-sm text-slate-400">Swiss Stage | Historical Data Mode</div>
     </header>
 
@@ -42,7 +42,14 @@
                         {% for team in teams %}
                         <tr onclick="loadTeamData({{ team.id }}, this)" class="team-row cursor-pointer hover:bg-slate-800/30 transition-colors {% if forloop.counter <= 8 %}top-8-bg{% endif %}" data-team-id="{{ team.id }}">
                             <td class="px-4 py-3 font-mono text-slate-500">{{ forloop.counter }}</td>
-                            <td class="px-4 py-3 font-semibold">{{ team.name }}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-3">
+                                    {% if team.logo_url %}
+                                    <img src="{{ team.logo_url }}" alt="" class="w-5 h-5 object-contain" onerror="this.src='https://via.placeholder.com/20/1e293b/ffffff?text=?'">
+                                    {% endif %}
+                                    <span class="font-semibold">{{ team.name }}</span>
+                                </div>
+                            </td>
                             <td class="px-4 py-3 text-slate-400">{{ team.played }}</td>
                             <td class="px-4 py-3 text-center">{{ team.wins }}</td>
                             <td class="px-4 py-3 text-center">{{ team.draws }}</td>
@@ -132,6 +139,36 @@
                             <div class="text-[11px] text-slate-500 italic py-4 text-center">Заглушка симуляции</div>
                         </div>
                     </div>
+                </div>
+
+                <!-- News Block -->
+                <div class="mt-8">
+                    <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-3">Последние новости</div>
+                    <div class="space-y-4 max-h-[500px] overflow-y-auto scrollbar-hide pr-1" id="news-container">
+                        {% for item in news_items %}
+                        <div class="news-card bg-[#142338] rounded-xl border border-[#1e3550] overflow-hidden hover:border-[#00aaff] transition-colors group">
+                            {% if item.image_url %}
+                            <div class="aspect-video w-full overflow-hidden">
+                                <img src="{{ item.image_url }}" alt="{{ item.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            </div>
+                            {% endif %}
+                            <div class="p-4">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase" style="background-color: {{ item.tag_color }}22; color: {{ item.tag_color }}; border: 1px solid {{ item.tag_color }}44;">
+                                        {{ item.tag }}
+                                    </span>
+                                    <span class="text-[10px] text-slate-500 font-mono">{{ item.date }}</span>
+                                </div>
+                                <h3 class="text-[13px] font-bold text-white mb-1.5 leading-tight group-hover:text-[#00aaff] transition-colors">{{ item.title }}</h3>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if news_items|length > 3 %}
+                    <button class="w-full mt-4 py-2 text-[11px] font-bold text-[#5a8ab0] border border-[#1e3550] rounded-lg hover:bg-[#1e3550] transition-colors uppercase tracking-wider">
+                        Показать ещё
+                    </button>
+                    {% endif %}
                 </div>
             </div>
         </div>

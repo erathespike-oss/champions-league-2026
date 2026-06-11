@@ -2,6 +2,7 @@ from django.db import models
 
 class Team(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    logo_url = models.CharField(max_length=500, null=True, blank=True)
     rank = models.IntegerField(default=0)
     played = models.IntegerField(default=0)
     wins = models.IntegerField(default=0)
