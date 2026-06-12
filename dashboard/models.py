@@ -10,6 +10,7 @@ class Team(models.Model):
     losses = models.IntegerField(default=0)
     goals_for = models.IntegerField(default=0)
     goals_against = models.IntegerField(default=0)
+    goal_difference = models.IntegerField(default=0)
     points = models.IntegerField(default=0)
 
     def __str__(self):
@@ -20,8 +21,17 @@ class Match(models.Model):
     away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='away_matches')
     home_score = models.IntegerField(null=True, blank=True)
     away_score = models.IntegerField(null=True, blank=True)
+    halftime_home_score = models.IntegerField(null=True, blank=True)
+    halftime_away_score = models.IntegerField(null=True, blank=True)
     round_number = models.IntegerField()
+    stage = models.CharField(max_length=100, null=True, blank=True)
+    status = models.CharField(max_length=50, null=True, blank=True)
+    date_utc = models.DateTimeField(null=True, blank=True)
+    referee = models.CharField(max_length=200, null=True, blank=True)
+    venue = models.CharField(max_length=200, null=True, blank=True)
     video_url = models.URLField(max_length=500, null=True, blank=True)
+    analysis_text = models.TextField(null=True, blank=True)
+    analysis_author = models.CharField(max_length=100, null=True, blank=True)
 
     @property
     def is_played(self) -> bool:

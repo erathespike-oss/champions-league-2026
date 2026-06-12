@@ -3,118 +3,391 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ match.home_team.name }} vs {{ match.away_team.name }} | Статистика</title>
+    <title>{{ m.home_team }} vs {{ m.away_team }} | Match Detail</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #0f172a; color: #f8fafc; }
-        .stat-bar-container { background-color: #1e293b; height: 8px; border-radius: 999px; overflow: hidden; display: flex; }
+        body { background-color: #0a1628; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        
+        .pitch-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2/3;
+            background-color: #2d5a27;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 10% 10%;
+        }
+        .center-circle {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 25%; aspect-ratio: 1; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%;
+        }
+        .center-line { position: absolute; top: 50%; left: 0; width: 100%; border-top: 1px solid rgba(255,255,255,0.2); }
+        .penalty-area-top {
+            position: absolute; top: 0; left: 15%; width: 60%; height: 18%;
+            border: 1px solid rgba(255,255,255,0.2); border-top: 0;
+        }
+        .penalty-area-bottom {
+            position: absolute; bottom: 0; left: 15%; width: 60%; height: 18%;
+            border: 1px solid rgba(255,255,255,0.2); border-bottom: 0;
+        }
+        
+        /* Player Token Styling */
+        .player-token {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 70px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .player-avatar {
+            position: relative;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 2px solid #00aaff;
+            background: #1a2a3a;
+            margin-bottom: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+        .player-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .player-name-label {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+            white-space: nowrap;
+            background: rgba(10, 22, 40, 0.8);
+            padding: 1px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .player-number-label {
+            font-size: 8px;
+            color: #00aaff;
+            font-weight: 900;
+            margin-top: -1px;
+        }
+
+        .badge {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            z-index: 11;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .goal-badge { top: -4px; right: -4px; font-size: 12px; }
+        .card-badge { bottom: -2px; right: -4px; width: 10px; height: 14px; border: 1px solid rgba(0,0,0,0.3); }
+        .yellow-card { background: #ffcc00; }
+        .red-card { background: #ff3333; }
+
+        .stat-bar-container { background-color: #1e293b; height: 6px; border-radius: 999px; overflow: hidden; display: flex; }
+        .status-finished { background-color: #475569; }
+        .status-live { background-color: #059669; animation: pulse 2s infinite; }
+        .status-upcoming { background-color: #2563eb; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
-<body class="p-4 md:p-10 font-sans">
-    <div class="max-w-4xl mx-auto">
-        <header class="mb-10 flex items-center justify-between">
-            <a href="/" class="text-blue-500 hover:text-blue-400 text-sm flex items-center gap-2">
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 flex items-center justify-between">
+            <a href="/" class="text-[#00aaff] hover:underline text-sm flex items-center gap-2">
                 <span>← Назад к таблице</span>
             </a>
-            <div class="text-slate-400 text-xs uppercase tracking-widest">Champions League | 2024/25 Season</div>
+            <div class="text-[#8899aa] text-[10px] uppercase tracking-[0.3em] font-bold">CHAMPIONS LEAGUE | 2024/25 SEASON</div>
         </header>
 
-        <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-2xl mb-8">
-            <div class="flex flex-col md:flex-row items-center justify-between gap-8">
-                <div class="text-center md:w-1/3">
-                    <div class="text-2xl font-bold mb-2">{{ match.home_team.name }}</div>
-                    <div class="text-slate-500 text-sm">Хозяева</div>
+        <!-- БЛОК 1: Шапка матча -->
+        <div class="bg-[#0f1b2d] rounded-3xl p-8 border border-[#1a2a3a] shadow-2xl mb-8 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00aaff] to-transparent opacity-30"></div>
+            
+            <div class="text-center mb-8">
+                <div class="text-[11px] text-[#8899aa] uppercase tracking-widest mb-1">{{ m.stage }} • {{ m.date }}</div>
+                <div class="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter text-white status-{{ m.status|lower }}">
+                    {{ m.status }}
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
+                <div class="text-center md:w-1/3 group">
+                    <img src="{{ m.home_logo }}" alt="" class="w-24 h-24 object-contain mx-auto mb-4 group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://via.placeholder.com/96/1e293b/ffffff?text=HOME'">
+                    <div class="text-2xl font-black uppercase tracking-tight">{{ m.home_team }}</div>
+                    <div class="text-[#8899aa] text-xs mt-1 uppercase font-bold">Хозяева</div>
                 </div>
                 
-                <div class="flex items-center gap-6">
-                    <div class="text-6xl font-black tracking-tighter">{{ match.home_score }}</div>
-                    <div class="text-slate-700 text-4xl font-light">:</div>
-                    <div class="text-6xl font-black tracking-tighter">{{ match.away_score }}</div>
+                <div class="text-center">
+                    <div class="flex items-center gap-8 mb-4">
+                        <div class="text-7xl font-black tracking-tighter text-white">{{ m.score_home }}</div>
+                        <div class="text-[#1a2a3a] text-5xl font-light">:</div>
+                        <div class="text-7xl font-black tracking-tighter text-white">{{ m.score_away }}</div>
+                    </div>
+                    <div class="text-[#8899aa] text-sm font-bold bg-[#1a2a3a]/50 px-4 py-1.5 rounded-full inline-block">
+                        Перерыв: {{ m.score_ht_home }} - {{ m.score_ht_away }}
+                    </div>
                 </div>
 
-                <div class="text-center md:w-1/3">
-                    <div class="text-2xl font-bold mb-2">{{ match.away_team.name }}</div>
-                    <div class="text-slate-500 text-sm">Гости</div>
+                <div class="text-center md:w-1/3 group">
+                    <img src="{{ m.away_logo }}" alt="" class="w-24 h-24 object-contain mx-auto mb-4 group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://via.placeholder.com/96/1e293b/ffffff?text=AWAY'">
+                    <div class="text-2xl font-black uppercase tracking-tight">{{ m.away_team }}</div>
+                    <div class="text-[#8899aa] text-xs mt-1 uppercase font-bold">Гости</div>
                 </div>
+            </div>
+
+            <!-- Goals Timeline -->
+            <div class="mt-12 flex flex-wrap justify-center gap-6 border-t border-[#1a2a3a] pt-8">
+                {% for goal in m.goals_timeline %}
+                <div class="flex items-center gap-2 text-[11px] font-bold text-[#8899aa]">
+                    <span class="text-white">⚽ {{ goal.minute }}'</span>
+                    <span class="uppercase">{{ goal.player }}</span>
+                    {% if goal.team == 'home' %}
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#00aaff]"></span>
+                    {% else %}
+                    <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-8 text-center text-[10px] text-[#5a8ab0] uppercase tracking-widest font-bold">
+                🏟 {{ m.venue }} | 👤 Главный арбитр: {{ m.referee }}
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Подробная статистика -->
-            <div class="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
-                <h3 class="text-sm font-bold uppercase text-slate-500 mb-6 tracking-widest">Статистика матча</h3>
-                
-                <div class="space-y-6">
-                    <!-- Владение -->
-                    <div>
-                        <div class="flex justify-between text-xs mb-2">
-                            <span>{{ stats.possession.0 }}%</span>
-                            <span class="text-slate-500 uppercase">Владение</span>
-                            <span>{{ stats.possession.1 }}%</span>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Левая колонка: Составы -->
+            <div class="lg:col-span-8">
+                <div class="bg-[#0f1b2d] rounded-3xl border border-[#1a2a3a] overflow-hidden shadow-xl">
+                    <div class="p-6 border-b border-[#1a2a3a] flex justify-between items-center bg-[#1a2a3a]/20">
+                        <div class="flex items-center gap-3">
+                            <img id="lineup-logo" src="{{ m.home_logo }}" class="w-6 h-6 object-contain">
+                            <h2 class="font-black uppercase tracking-tight">Составы команд</h2>
+                            <span id="lineup-formation" class="text-[10px] bg-[#00aaff] text-white px-2 py-0.5 rounded font-black ml-2">{{ m.home_lineup.formation }}</span>
                         </div>
-                        <div class="stat-bar-container">
-                            <div class="bg-blue-500 h-full" style="width: {{ stats.possession.0 }}%"></div>
-                            <div class="bg-slate-600 h-full" style="width: {{ stats.possession.1 }}%"></div>
+                        <div class="flex gap-2">
+                            <button onclick="toggleTeam('home')" class="team-btn px-4 py-1.5 rounded-full text-[11px] font-bold bg-[#00aaff] text-white transition-all uppercase">Home</button>
+                            <button onclick="toggleTeam('away')" class="team-btn px-4 py-1.5 rounded-full text-[11px] font-bold border border-[#1a2a3a] text-[#8899aa] hover:bg-[#1a2a3a] transition-all uppercase">Away</button>
                         </div>
                     </div>
+                    
+                    <div class="p-6">
+                        <div class="flex justify-center gap-2 mb-6" id="view-tabs">
+                            <button onclick="switchView('results', this)" class="view-btn px-4 py-2 rounded-xl bg-[#1a2a3a] text-white text-[10px] font-black uppercase tracking-widest border border-[#00aaff]">Результаты</button>
+                            <button onclick="switchView('age', this)" class="view-btn px-4 py-2 rounded-xl bg-[#0f1b2d] text-[#8899aa] text-[10px] font-black uppercase tracking-widest border border-[#1a2a3a]">Возраст</button>
+                            <button onclick="switchView('country', this)" class="view-btn px-4 py-2 rounded-xl bg-[#0f1b2d] text-[#8899aa] text-[10px] font-black uppercase tracking-widest border border-[#1a2a3a]">Страна</button>
+                        </div>
 
-                    <!-- Удары -->
-                    <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
-                        <span class="text-xl font-mono">{{ stats.shots.0 }}</span>
-                        <span class="text-[10px] text-slate-500 uppercase">Удары всего</span>
-                        <span class="text-xl font-mono">{{ stats.shots.1 }}</span>
-                    </div>
+                        <!-- Pitch Visualization -->
+                        <div class="pitch-container mb-8" id="tactical-pitch">
+                            <div class="center-line"></div>
+                            <div class="center-circle"></div>
+                            <div class="penalty-area-top"></div>
+                            <div class="penalty-area-bottom"></div>
+                            <div id="players-layer" class="absolute inset-0"></div>
+                        </div>
 
-                    <!-- В створ -->
-                    <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
-                        <span class="text-xl font-mono">{{ stats.shots_on_target.0 }}</span>
-                        <span class="text-[10px] text-slate-500 uppercase">В створ</span>
-                        <span class="text-xl font-mono">{{ stats.shots_on_target.1 }}</span>
-                    </div>
-
-                    <!-- Угловые -->
-                    <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
-                        <span class="text-xl font-mono">{{ stats.corners.0 }}</span>
-                        <span class="text-[10px] text-slate-500 uppercase">Угловые</span>
-                        <span class="text-xl font-mono">{{ stats.corners.1 }}</span>
-                    </div>
-
-                    <!-- Фолы -->
-                    <div class="flex justify-between items-center py-2">
-                        <span class="text-xl font-mono">{{ stats.fouls.0 }}</span>
-                        <span class="text-[10px] text-slate-500 uppercase">Фолы</span>
-                        <span class="text-xl font-mono">{{ stats.fouls.1 }}</span>
+                        <!-- Substitutes List -->
+                        <div class="mt-8">
+                            <h3 class="text-[11px] font-black uppercase text-[#5a8ab0] mb-4 tracking-[0.2em]">Запасные игроки</h3>
+                            <div id="substitutes-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Subs injected here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Видео и информация -->
-            <div class="space-y-6">
-                <div class="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
-                    <h3 class="text-sm font-bold uppercase text-slate-500 mb-4 tracking-widest">Медиа</h3>
-                    {% if match.video_url %}
-                    <a href="{{ match.video_url }}" target="_blank" class="block group">
-                        <div class="aspect-video bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 group-hover:border-blue-500 transition-all overflow-hidden relative">
-                            <div class="absolute inset-0 bg-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <span class="text-blue-500 font-bold group-hover:scale-110 transition-transform">СМОТРЕТЬ ОБЗОР ▶</span>
+            <!-- Правая колонка: Статистика и Аналитика -->
+            <div class="lg:col-span-4 space-y-8">
+                <!-- Статистика -->
+                <div class="bg-[#0f1b2d] rounded-3xl p-6 border border-[#1a2a3a] shadow-xl">
+                    <h3 class="text-[11px] font-black uppercase text-[#5a8ab0] mb-8 tracking-[0.2em] text-center">Статистика матча</h3>
+                    <div class="space-y-6">
+                        {% for key, values in m.stats.items %}
+                        <div class="group">
+                            <div class="flex justify-between text-[11px] font-black mb-2 uppercase tracking-tighter">
+                                <span class="text-white">{{ values.0 }}</span>
+                                <span class="text-[#8899aa]">{{ key }}</span>
+                                <span class="text-white">{{ values.1 }}</span>
+                            </div>
+                            <div class="stat-bar-container">
+                                <div class="bg-[#00aaff] h-full" style="width: {{ values.0|default:0 }}%"></div>
+                                <div class="bg-white h-full" style="width: {{ values.1|default:0 }}%"></div>
+                            </div>
                         </div>
-                    </a>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Медиа -->
+                <div class="bg-[#0f1b2d] rounded-3xl p-6 border border-[#1a2a3a] shadow-xl">
+                    <h3 class="text-[11px] font-black uppercase text-[#5a8ab0] mb-6 tracking-[0.2em]">Медиа обзор</h3>
+                    {% if m.video_url %}
+                    <div class="aspect-video rounded-2xl overflow-hidden border border-[#1a2a3a]">
+                        <iframe width="100%" height="100%" src="{{ m.video_url }}" frameborder="0" allowfullscreen></iframe>
+                    </div>
                     {% else %}
-                    <div class="aspect-video bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 text-slate-600 text-xs italic">
-                        Видеообзор не найден
+                    <div class="aspect-video bg-[#1a2a3a]/30 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-[#1a2a3a] group hover:border-[#00aaff] transition-all cursor-pointer">
+                        <div class="text-4xl mb-2 group-hover:scale-110 transition-transform">▶️</div>
+                        <div class="text-[10px] text-[#8899aa] uppercase font-black">Видеообзор не найден</div>
                     </div>
                     {% endif %}
                 </div>
 
-                <div class="bg-blue-600/10 rounded-2xl p-6 border border-blue-500/20">
-                    <h3 class="text-xs font-bold uppercase text-blue-400 mb-2 tracking-widest">Аналитическая заметка</h3>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        На основе xG данных, {{ match.home_team.name }} показал эффективность {{ stats.shots_on_target.0 }} точных попаданий из {{ stats.shots.0 }} попыток. 
-                        Владение мячом составило {{ stats.possession.0 }}%, что отражает тактическую доминанту в центре поля.
+                <!-- Аналитика -->
+                <div class="bg-gradient-to-br from-[#1a2a3a]/40 to-transparent rounded-3xl p-6 border border-[#1a2a3a] shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 text-6xl text-[#1a2a3a] opacity-20 font-serif">“</div>
+                    <h3 class="text-[11px] font-black uppercase text-[#00aaff] mb-4 tracking-[0.2em]">Аналитическая заметка</h3>
+                    <p class="text-[13px] text-[#8899aa] leading-relaxed mb-6 italic">
+                        "{{ m.analysis_text }}"
                     </p>
+                    <div class="flex items-center gap-3 border-t border-[#1a2a3a] pt-4">
+                        <div class="w-8 h-8 rounded-full bg-[#00aaff]/20 flex items-center justify-center text-[10px] font-bold text-[#00aaff]">CA</div>
+                        <div>
+                            <div class="text-[11px] font-bold text-white">{{ m.analysis_author }}</div>
+                            <div class="text-[9px] text-[#5a8ab0] uppercase">Эксперт-аналитик</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        const homeData = JSON.parse('{{ home_lineup_json|safe|escapejs }}');
+        const awayData = JSON.parse('{{ away_lineup_json|safe|escapejs }}');
+        
+        let currentTeam = 'home';
+        let currentView = 'results';
+
+        const formations = {
+            "4-3-3": {
+                "GK":  [{ x: 50, y: 90 }],
+                "RB":  [{ x: 85, y: 72 }],
+                "CB":  [{ x: 62, y: 72 }, { x: 38, y: 72 }],
+                "LB":  [{ x: 15, y: 72 }],
+                "CM":  [{ x: 75, y: 50 }, { x: 50, y: 50 }, { x: 25, y: 50 }],
+                "RW":  [{ x: 82, y: 25 }],
+                "ST":  [{ x: 50, y: 20 }],
+                "LW":  [{ x: 18, y: 25 }],
+            },
+            "3-5-2": {
+                "GK":  [{ x: 50, y: 90 }],
+                "CB":  [{ x: 25, y: 75 }, { x: 50, y: 75 }, { x: 75, y: 75 }],
+                "LWB": [{ x: 12, y: 55 }],
+                "CDM": [{ x: 50, y: 55 }],
+                "CM":  [{ x: 32, y: 48 }, { x: 68, y: 48 }],
+                "RWB": [{ x: 88, y: 55 }],
+                "ST":  [{ x: 35, y: 22 }, { x: 65, y: 22 }],
+            }
+        };
+
+        function toggleTeam(team) {
+            currentTeam = team;
+            document.querySelectorAll('.team-btn').forEach(b => {
+                b.classList.remove('bg-[#00aaff]', 'text-white');
+                b.classList.add('border', 'border-[#1a2a3a]', 'text-[#8899aa]');
+            });
+            event.target.classList.add('bg-[#00aaff]', 'text-white');
+            event.target.classList.remove('border', 'border-[#1a2a3a]', 'text-[#8899aa]');
+            
+            const data = team === 'home' ? homeData : awayData;
+            document.getElementById('lineup-logo').src = data.team_logo;
+            document.getElementById('lineup-formation').innerText = data.formation;
+            
+            renderLineup();
+        }
+
+        function switchView(view, btn) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => {
+                b.classList.remove('bg-[#1a2a3a]', 'text-white', 'border-[#00aaff]');
+                b.classList.add('bg-[#0f1b2d]', 'text-[#8899aa]', 'border-[#1a2a3a]');
+            });
+            btn.classList.add('bg-[#1a2a3a]', 'text-white', 'border-[#00aaff]');
+            btn.classList.remove('bg-[#0f1b2d]', 'text-[#8899aa]', 'border-[#1a2a3a]');
+            renderLineup();
+        }
+
+        function renderLineup() {
+            const data = currentTeam === 'home' ? homeData : awayData;
+            const playersLayer = document.getElementById('players-layer');
+            playersLayer.innerHTML = '';
+
+            const formation = formations[data.formation] || formations["4-3-3"];
+            const posCounts = {};
+
+            data.players.forEach(p => {
+                const pos = p.position;
+                if (!posCounts[pos]) posCounts[pos] = 0;
+                
+                const coords = formation[pos] ? formation[pos][posCounts[pos]] : { x: 50, y: 50 };
+                posCounts[pos]++;
+
+                if (coords) {
+                    playersLayer.innerHTML += createPlayerToken(p, coords.x, coords.y);
+                }
+            });
+
+            // Render subs
+            const subList = document.getElementById('substitutes-list');
+            subList.innerHTML = '';
+            data.substitutes.forEach(p => {
+                subList.innerHTML += `
+                    <div class="flex items-center gap-3 bg-[#1a2a3a]/30 p-2 rounded-xl border border-[#1a2a3a]">
+                        <div class="w-10 h-10 rounded-lg overflow-hidden border border-[#1a2a3a] bg-[#1a2a3a]">
+                            <img src="${p.photo_path}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/40/1e293b/ffffff?text=${p.name[0]}'">
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-[11px] font-bold text-white">${p.name}</div>
+                            <div class="text-[9px] text-[#5a8ab0] uppercase">${p.position} | #${p.number}</div>
+                        </div>
+                        <div class="text-[10px] font-bold text-[#8899aa]">${currentView === 'age' ? p.age : (currentView === 'country' ? p.country_flag : '')}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function createPlayerToken(p, x, y) {
+            let inner = '';
+            if (currentView === 'results') {
+                inner = `<img src="${p.photo_path}" onerror="this.src='https://via.placeholder.com/64/1e293b/ffffff?text=${p.name[0]}'">`;
+            } else if (currentView === 'age') {
+                inner = `<div class="w-full h-full flex items-center justify-center text-sm font-black text-[#00aaff]">${p.age}</div>`;
+            } else {
+                inner = `<div class="w-full h-full flex items-center justify-center text-2xl">${p.country_flag}</div>`;
+            }
+
+            const goalBadge = p.goals.length > 0 ? '<div class="badge goal-badge">⭐</div>' : '';
+            const cardBadge = p.yellow_cards > 0 ? '<div class="badge card-badge yellow-card"></div>' : (p.red_card ? '<div class="badge card-badge red-card"></div>' : '');
+
+            return `
+                <div class="player-token" style="left: ${x}%; top: ${y}%">
+                    <div class="player-avatar">
+                        ${inner}
+                        ${goalBadge}
+                        ${cardBadge}
+                    </div>
+                    <div class="player-name-label">#${p.number} ${p.name.split(' ').pop()}</div>
+                </div>
+            `;
+        }
+
+        // Initial render
+        window.onload = renderLineup;
+    </script>
 </body>
 </html>

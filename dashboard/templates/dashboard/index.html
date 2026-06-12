@@ -35,6 +35,7 @@
                             <th class="px-4 py-3 text-center">L</th>
                             <th class="px-4 py-3">GF</th>
                             <th class="px-4 py-3">GA</th>
+                            <th class="px-4 py-3">GD</th>
                             <th class="px-4 py-3 font-bold text-blue-400">Pts</th>
                         </tr>
                     </thead>
@@ -56,6 +57,7 @@
                             <td class="px-4 py-3 text-center">{{ team.losses }}</td>
                             <td class="px-4 py-3 font-mono text-slate-400">{{ team.goals_for }}</td>
                             <td class="px-4 py-3 font-mono text-slate-400">{{ team.goals_against }}</td>
+                            <td class="px-4 py-3 font-mono text-slate-400">{{ team.goal_difference }}</td>
                             <td class="px-4 py-3 font-bold text-blue-400">{{ team.points }}</td>
                         </tr>
                         {% endfor %}
@@ -114,6 +116,10 @@
                                     <div class="text-[#7a9ab8] w-24">Забито голов</div>
                                     <div id="stat-gf-val" class="text-[#4fc3f7] font-medium flex-1 text-right">0</div>
                                 </div>
+                                <div class="flex justify-between items-center text-[12px] py-1.5 border-b border-[#1a2f45]">
+                                    <div class="text-[#7a9ab8] w-24">Разница мячей</div>
+                                    <div id="stat-gd-val" class="text-[#4fc3f7] font-medium flex-1 text-right">0</div>
+                                </div>
                                 <div class="flex justify-between items-center text-[12px] py-1.5">
                                     <div class="text-[#7a9ab8] w-24">Пропущено</div>
                                     <div id="stat-ga-val" class="text-[#ef5350] font-medium flex-1 text-right">0</div>
@@ -125,19 +131,205 @@
 
                 <div id="tab-h2h" class="tab-content hidden">
                     <div class="mb-5">
-                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Head-to-Head</div>
+                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Head-to-Head Comparison</div>
                         <div class="bg-[#142338] rounded-lg p-3 border border-[#1e3550]">
-                            <div class="text-[11px] text-slate-500 italic py-4 text-center">Заглушка H2H</div>
+                            <div class="flex items-center gap-2 mb-4">
+                                <select id="h2h-team-a" class="flex-1 bg-[#0f1b2d] border border-[#1e3550] text-[12px] p-1.5 rounded text-[#e0e8f0]">
+                                    <option value="">Команда А</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="text-[#5a8ab0] font-bold text-[14px]">⚔️</span>
+                                <select id="h2h-team-b" class="flex-1 bg-[#0f1b2d] border border-[#1e3550] text-[12px] p-1.5 rounded text-[#e0e8f0]">
+                                    <option value="">Команда Б</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button onclick="compareH2H()" class="w-full py-2 bg-[#00aaff] text-white text-[12px] font-bold rounded hover:bg-[#0088cc] transition-colors uppercase">Сравнить</button>
+                        </div>
+                    </div>
+
+                    <div id="h2h-results" class="hidden">
+                        <!-- Summary Block -->
+                        <div class="bg-[#142338] rounded-lg p-4 border border-[#1e3550] mb-5">
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="text-center w-1/3">
+                                    <img id="h2h-logo-a" src="" class="w-8 h-8 object-contain mx-auto mb-1" onerror="this.src='https://via.placeholder.com/32/1e293b/ffffff?text=A'">
+                                    <div id="h2h-name-a" class="text-[11px] font-bold truncate">Team A</div>
+                                </div>
+                                <div class="text-[14px] font-bold text-[#5a8ab0]">VS</div>
+                                <div class="text-center w-1/3">
+                                    <img id="h2h-logo-b" src="" class="w-8 h-8 object-contain mx-auto mb-1" onerror="this.src='https://via.placeholder.com/32/1e293b/ffffff?text=B'">
+                                    <div id="h2h-name-b" class="text-[11px] font-bold truncate">Team B</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <div class="flex justify-between text-[10px] text-[#8899aa] mb-1">
+                                    <span id="h2h-wins-a">0 wins</span>
+                                    <span id="h2h-draws">0 draws</span>
+                                    <span id="h2h-wins-b">0 wins</span>
+                                </div>
+                                <div class="h-2 flex rounded-full overflow-hidden bg-[#1a2a3a]">
+                                    <div id="h2h-bar-a" class="bg-[#00aaff]" style="width: 0%"></div>
+                                    <div id="h2h-bar-draw" class="bg-[#ffaa00]" style="width: 0%"></div>
+                                    <div id="h2h-bar-b" class="bg-[#ffffff]" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mini Stats Cards -->
+                        <div class="grid grid-cols-2 gap-2 mb-5">
+                            <div class="bg-[#142338] p-2.5 rounded-lg border border-[#1e3550]">
+                                <div class="text-[9px] text-[#5a8ab0] uppercase mb-1">Avg Goals</div>
+                                <div id="h2h-avg-goals" class="text-[14px] font-bold text-white">0</div>
+                            </div>
+                            <div class="bg-[#142338] p-2.5 rounded-lg border border-[#1e3550]">
+                                <div class="text-[9px] text-[#5a8ab0] uppercase mb-1">Home/Away Wins</div>
+                                <div id="h2h-home-away" class="text-[10px] font-bold text-white">0H / 0A</div>
+                            </div>
+                            <div class="bg-[#142338] p-2.5 rounded-lg border border-[#1e3550]">
+                                <div class="text-[9px] text-[#5a8ab0] uppercase mb-1">Biggest Win A</div>
+                                <div id="h2h-biggest-a" class="text-[14px] font-bold text-[#00aaff]">-</div>
+                            </div>
+                            <div class="bg-[#142338] p-2.5 rounded-lg border border-[#1e3550]">
+                                <div class="text-[9px] text-[#5a8ab0] uppercase mb-1">Biggest Win B</div>
+                                <div id="h2h-biggest-b" class="text-[14px] font-bold text-white">-</div>
+                            </div>
+                        </div>
+
+                        <!-- Match List -->
+                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Последние встречи</div>
+                        <div class="bg-[#142338] rounded-lg overflow-hidden border border-[#1e3550]">
+                            <table class="w-full text-[11px] text-left">
+                                <thead class="bg-[#1a2a3a] text-[#8899aa] uppercase">
+                                    <tr>
+                                        <th class="px-3 py-2">Дата</th>
+                                        <th class="px-3 py-2">Счёт</th>
+                                        <th class="px-3 py-2">Турнир</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="h2h-match-list" class="divide-y divide-[#1e3550]">
+                                    <!-- Matches here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="h2h-no-data" class="hidden">
+                        <div class="bg-[#142338] rounded-lg p-6 border border-[#1e3550] text-center">
+                            <div class="text-[#ffaa00] text-[24px] mb-2">⚠️</div>
+                            <div class="text-[12px] text-[#8899aa]">Эти команды не встречались в данном турнире</div>
                         </div>
                     </div>
                 </div>
 
                 <div id="tab-simulation" class="tab-content hidden">
                     <div class="mb-5">
-                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Симуляция</div>
+                        <div class="text-[11px] tracking-wide text-[#5a8ab0] uppercase font-medium mb-2.5">Match Simulation (Poisson xG)</div>
                         <div class="bg-[#142338] rounded-lg p-3 border border-[#1e3550]">
-                            <div class="text-[11px] text-slate-500 italic py-4 text-center">Заглушка симуляции</div>
+                            <div class="flex items-center gap-2 mb-4">
+                                <select id="sim-team-a" class="flex-1 bg-[#0f1b2d] border border-[#1e3550] text-[12px] p-1.5 rounded text-[#e0e8f0]">
+                                    <option value="">Команда А</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="text-[#5a8ab0] font-bold text-[14px]">vs</span>
+                                <select id="sim-team-b" class="flex-1 bg-[#0f1b2d] border border-[#1e3550] text-[12px] p-1.5 rounded text-[#e0e8f0]">
+                                    <option value="">Команда Б</option>
+                                    {% for team in teams %}
+                                    <option value="{{ team.id }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <button id="btn-simulate" onclick="runSimulation()" class="w-full py-2 bg-[#00aaff] text-white text-[12px] font-bold rounded hover:bg-[#0088cc] transition-colors uppercase">Симулировать</button>
                         </div>
+                    </div>
+
+                    <!-- Loading Block -->
+                    <div id="sim-loading" class="hidden">
+                        <div class="bg-[#142338] rounded-lg p-6 border border-[#1e3550] text-center">
+                            <div class="text-[#00aaff] text-[20px] mb-3 animate-spin">⚙️</div>
+                            <div class="text-[12px] text-white mb-3">Симулируем 10 000 матчей...</div>
+                            <div class="w-full bg-[#1e3a5f] h-1.5 rounded-full overflow-hidden">
+                                <div id="sim-progress" class="bg-[#00aaff] h-full transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Block -->
+                    <div id="sim-results" class="hidden">
+                        <div class="bg-[#142338] rounded-lg p-4 border border-[#1e3550] mb-5 text-center">
+                            <div class="flex justify-between items-center mb-4 px-4">
+                                <div class="text-center w-1/3">
+                                    <div id="sim-name-a" class="text-[11px] font-bold truncate mb-1">Team A</div>
+                                    <div class="text-[10px] text-[#5a8ab0]">Home</div>
+                                </div>
+                                <div class="text-[20px] font-black text-white px-3 py-1 bg-[#1e3550] rounded-lg">
+                                    <span id="sim-pred-a">0</span> - <span id="sim-pred-b">0</span>
+                                </div>
+                                <div class="text-center w-1/3">
+                                    <div id="sim-name-b" class="text-[11px] font-bold truncate mb-1">Team B</div>
+                                    <div class="text-[10px] text-[#5a8ab0]">Away</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="flex justify-between text-[10px] text-[#8899aa] mb-1">
+                                    <span>Победа А: <span id="sim-prob-a">0</span>%</span>
+                                    <span>Ничья: <span id="sim-prob-draw">0</span>%</span>
+                                    <span>Победа Б: <span id="sim-prob-b">0</span>%</span>
+                                </div>
+                                <div class="h-2.5 flex rounded-full overflow-hidden bg-[#1a2a3a]">
+                                    <div id="sim-bar-a" class="bg-[#00cc66] transition-all duration-1000 ease-out" style="width: 0%"></div>
+                                    <div id="sim-bar-draw" class="bg-[#ffaa00] transition-all duration-1000 ease-out" style="width: 0%"></div>
+                                    <div id="sim-bar-b" class="bg-[#ff4444] transition-all duration-1000 ease-out" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="text-[11px] font-bold text-[#00aaff] uppercase tracking-wider">
+                                Наиболее вероятный исход: <span id="sim-outcome" class="text-white">-</span>
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Details -->
+                        <div class="mb-5">
+                            <button onclick="toggleDetails()" class="w-full text-[10px] text-[#5a8ab0] uppercase font-bold flex items-center justify-center gap-1.5 py-1 hover:text-[#00aaff] transition-colors">
+                                Подробнее <span id="details-icon">▼</span>
+                            </button>
+                            <div id="sim-details" class="hidden mt-3 space-y-3">
+                                <div class="bg-[#142338] p-3 rounded-lg border border-[#1e3550]">
+                                    <div class="text-[10px] text-[#5a8ab0] uppercase mb-2 border-b border-[#1e3550] pb-1">Топ-5 наиболее вероятных счётов</div>
+                                    <div id="sim-top-scores" class="space-y-1.5">
+                                        <!-- Scores here -->
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-[#142338] p-2.5 rounded-lg border border-[#1e3550]">
+                                        <div class="text-[9px] text-[#5a8ab0] uppercase mb-1">Avg xG</div>
+                                        <div id="sim-avg-xg" class="text-[12px] font-bold text-white">0.0 - 0.0</div>
+                                    </div>
+                                    <div class="bg-[#142338] p-2.5 rounded-lg border border-[#1e3550]">
+                                        <div class="text-[9px] text-[#5a8ab0] uppercase mb-1">Обе забьют</div>
+                                        <div id="sim-btts" class="text-[12px] font-bold text-white">0%</div>
+                                    </div>
+                                    <div class="bg-[#142338] p-2.5 rounded-lg border border-[#1e3550]">
+                                        <div class="text-[9px] text-[#5a8ab0] uppercase mb-1">Тотал > 2.5</div>
+                                        <div id="sim-over-25" class="text-[12px] font-bold text-white">0%</div>
+                                    </div>
+                                    <div class="bg-[#142338] p-2.5 rounded-lg border border-[#1e3550]">
+                                        <div class="text-[9px] text-[#5a8ab0] uppercase mb-1">Предсказан xG</div>
+                                        <div id="sim-total-xg" class="text-[12px] font-bold text-white">0.0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="resetSimulation()" class="w-full py-2 border border-[#00aaff] text-[#00aaff] text-[11px] font-bold rounded hover:bg-[#00aaff]/10 transition-colors uppercase">Симулировать еще раз</button>
                     </div>
                 </div>
 
@@ -215,10 +407,204 @@
                 document.getElementById('stat-pts-bar').style.width = ptsPerc + "%";
                 document.getElementById('stat-gf-val').innerText = data.stats.gf;
                 document.getElementById('stat-ga-val').innerText = data.stats.ga;
+                document.getElementById('stat-gd-val').innerText = (data.stats.gd > 0 ? "+" : "") + data.stats.gd;
 
             } catch (error) {
                 console.error('Error fetching team data:', error);
             }
+        }
+
+        async function compareH2H() {
+            const teamA = document.getElementById('h2h-team-a').value;
+            const teamB = document.getElementById('h2h-team-b').value;
+            const resultsBlock = document.getElementById('h2h-results');
+            const noDataBlock = document.getElementById('h2h-no-data');
+
+            if (!teamA || !teamB) {
+                alert("Выберите две команды!");
+                return;
+            }
+            if (teamA === teamB) {
+                alert("Выберите разные команды!");
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/h2h/?team_a=${teamA}&team_b=${teamB}`);
+                const data = await response.json();
+
+                if (data.no_data) {
+                    resultsBlock.classList.add('hidden');
+                    noDataBlock.classList.remove('hidden');
+                    return;
+                }
+
+                noDataBlock.classList.add('hidden');
+                resultsBlock.classList.remove('hidden');
+
+                // Update Summary
+                document.getElementById('h2h-name-a').innerText = data.team_a.name;
+                document.getElementById('h2h-name-b').innerText = data.team_b.name;
+                document.getElementById('h2h-logo-a').src = data.team_a.logo;
+                document.getElementById('h2h-logo-b').src = data.team_b.logo;
+                
+                document.getElementById('h2h-wins-a').innerText = data.team_a.wins + " wins";
+                document.getElementById('h2h-wins-b').innerText = data.team_b.wins + " wins";
+                document.getElementById('h2h-draws').innerText = data.draws + " draws";
+
+                const total = data.total_matches;
+                const percA = (data.team_a.wins / total) * 100;
+                const percD = (data.draws / total) * 100;
+                const percB = (data.team_b.wins / total) * 100;
+
+                document.getElementById('h2h-bar-a').style.width = percA + "%";
+                document.getElementById('h2h-bar-draw').style.width = percD + "%";
+                document.getElementById('h2h-bar-b').style.width = percB + "%";
+
+                // Update Stats Cards
+                document.getElementById('h2h-avg-goals').innerText = data.avg_goals;
+                document.getElementById('h2h-home-away').innerText = data.stats.home_away_a;
+                document.getElementById('h2h-biggest-a').innerText = data.stats.biggest_win_a || "-";
+                document.getElementById('h2h-biggest-b').innerText = data.stats.biggest_win_b || "-";
+
+                // Update Match List
+                const matchList = document.getElementById('h2h-match-list');
+                matchList.innerHTML = '';
+                data.matches.forEach(m => {
+                    matchList.innerHTML += `
+                        <tr class="hover:bg-[#1a2a3a] transition-colors">
+                            <td class="px-3 py-2 text-[#8899aa] font-mono">${m.date}</td>
+                            <td class="px-3 py-2 font-bold text-white">${m.score}</td>
+                            <td class="px-3 py-2 text-[#5a8ab0]">${m.stage} ${m.is_current_season ? '<span class="text-[8px] bg-[#00aaff] text-white px-1 rounded ml-1">2024/25</span>' : ''}</td>
+                        </tr>
+                    `;
+                });
+
+            } catch (error) {
+                console.error('Error fetching H2H data:', error);
+            }
+        }
+
+        function toggleDetails() {
+            const details = document.getElementById('sim-details');
+            const icon = document.getElementById('details-icon');
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                icon.innerText = '▲';
+            } else {
+                details.classList.add('hidden');
+                icon.innerText = '▼';
+            }
+        }
+
+        function resetSimulation() {
+            document.getElementById('sim-results').classList.add('hidden');
+            document.getElementById('sim-details').classList.add('hidden');
+            document.getElementById('details-icon').innerText = '▼';
+            document.querySelector('#tab-simulation .mb-5').classList.remove('hidden');
+        }
+
+        async function runSimulation() {
+            const teamA = document.getElementById('sim-team-a').value;
+            const teamB = document.getElementById('sim-team-b').value;
+            
+            if (!teamA || !teamB) {
+                alert("Выберите две команды!");
+                return;
+            }
+            if (teamA === teamB) {
+                alert("Выберите разные команды!");
+                return;
+            }
+
+            const loadingBlock = document.getElementById('sim-loading');
+            const resultsBlock = document.getElementById('sim-results');
+            const selectorBlock = document.querySelector('#tab-simulation .mb-5');
+            const progressBar = document.getElementById('sim-progress');
+
+            selectorBlock.classList.add('hidden');
+            loadingBlock.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            
+            // Animation of progress bar
+            setTimeout(() => { progressBar.style.width = '100%'; }, 50);
+
+            try {
+                const response = await fetch(`/api/simulate/?team_a=${teamA}&team_b=${teamB}`);
+                const data = await response.json();
+
+                // Wait for animation
+                setTimeout(() => {
+                    loadingBlock.classList.add('hidden');
+                    resultsBlock.classList.remove('hidden');
+
+                    // Animate numbers
+                    animateValue("sim-prob-a", 0, data.win_prob_a, 1000);
+                    animateValue("sim-prob-draw", 0, data.draw_prob, 1000);
+                    animateValue("sim-prob-b", 0, data.win_prob_b, 1000);
+                    animateValue("sim-pred-a", 0, data.predicted_score_a, 1000);
+                    animateValue("sim-pred-b", 0, data.predicted_score_b, 1000);
+
+                    // Update names
+                    document.getElementById('sim-name-a').innerText = data.team_a;
+                    document.getElementById('sim-name-b').innerText = data.team_b;
+
+                    // Update outcome
+                    let outcome = "Ничья";
+                    if (data.win_prob_a > data.win_prob_b && data.win_prob_a > data.draw_prob) outcome = `ПОБЕДА ${data.team_a}`;
+                    else if (data.win_prob_b > data.win_prob_a && data.win_prob_b > data.draw_prob) outcome = `ПОБЕДА ${data.team_b}`;
+                    document.getElementById('sim-outcome').innerText = outcome;
+
+                    // Update bars
+                    document.getElementById('sim-bar-a').style.width = data.win_prob_a + "%";
+                    document.getElementById('sim-bar-draw').style.width = data.draw_prob + "%";
+                    document.getElementById('sim-bar-b').style.width = data.win_prob_b + "%";
+
+                    // Update details
+                    document.getElementById('sim-avg-xg').innerText = `${data.xg_a} - ${data.xg_b}`;
+                    document.getElementById('sim-btts').innerText = `${data.both_score_prob}%`;
+                    document.getElementById('sim-over-25').innerText = `${data.over_2_5_prob}%`;
+                    document.getElementById('sim-total-xg').innerText = (data.xg_a + data.xg_b).toFixed(2);
+
+                    const topScoresList = document.getElementById('sim-top-scores');
+                    topScoresList.innerHTML = '';
+                    data.top_scores.forEach(s => {
+                        topScoresList.innerHTML += `
+                            <div class="flex justify-between items-center text-[11px]">
+                                <span class="text-white font-mono">${s[0]} - ${s[1]}</span>
+                                <div class="flex-1 mx-2 h-1 bg-[#0f1b2d] rounded-full overflow-hidden">
+                                    <div class="bg-[#00aaff] h-full" style="width: ${s[2] * 4}%"></div>
+                                </div>
+                                <span class="text-[#8899aa] min-w-[35px] text-right">${s[2]}%</span>
+                            </div>
+                        `;
+                    });
+
+                }, 1500);
+
+            } catch (error) {
+                console.error('Error during simulation:', error);
+                selectorBlock.classList.remove('hidden');
+                loadingBlock.classList.add('hidden');
+            }
+        }
+
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            const range = end - start;
+            let current = start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / (range === 0 ? 1 : range)));
+            if (range === 0) { obj.innerText = end; return; }
+            const timer = setInterval(() => {
+                current += (range / (duration / 16));
+                if ((range > 0 && current >= end) || (range < 0 && current <= end)) {
+                    obj.innerText = end;
+                    clearInterval(timer);
+                } else {
+                    obj.innerText = (id.includes('prob') ? current.toFixed(1) : Math.floor(current));
+                }
+            }, 16);
         }
     </script>
 </body>

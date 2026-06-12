@@ -1,6 +1,7 @@
 import csv
 from typing import Set
 from django.db import transaction
+from django.utils.dateparse import parse_datetime
 from dashboard.models import Team, Match
 
 class KaggleETL:
@@ -43,13 +44,21 @@ class KaggleETL:
                 
                 h_score = int(row['fulltime_home']) if row['fulltime_home'] else None
                 a_score = int(row['fulltime_away']) if row['fulltime_away'] else None
+                h_half = int(row['halftime_home']) if row['halftime_home'] else None
+                a_half = int(row['halftime_away']) if row['halftime_away'] else None
                 
                 match = Match(
                     home_team=home_team,
                     away_team=away_team,
                     home_score=h_score,
                     away_score=a_score,
-                    round_number=int(row.get('matchday', 1))
+                    halftime_home_score=h_half,
+                    halftime_away_score=a_half,
+                    round_number=int(row.get('matchday', 1)),
+                    stage=row.get('stage'),
+                    status=row.get('status'),
+                    date_utc=parse_datetime(row['date_utc']) if row.get('date_utc') else None,
+                    referee=row.get('referee')
                 )
                 matches_to_create.append(match)
 
@@ -61,6 +70,9 @@ class KaggleETL:
                     home_team.goals_against += a_score
                     away_team.goals_for += a_score
                     away_team.goals_against += h_score
+                    
+                    home_team.goal_difference = home_team.goals_for - home_team.goals_against
+                    away_team.goal_difference = away_team.goals_for - away_team.goals_against
 
                     if h_score > a_score:
                         home_team.wins += 1
